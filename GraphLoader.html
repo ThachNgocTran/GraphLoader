@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+<HTML>
+    <HEAD>
+        <TITLE>Graph Loader</TITLE>
+        <script src="papaparse.min.js"></script>
+        <script src="vis-network.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="GraphLoader.css">
+        <script type="text/javascript">
+            function exportCanvasToImage(){
+                let networkEle = document.getElementById("mynetwork");
+                let canvasEleCol = networkEle.getElementsByTagName("canvas");
+                if (canvasEleCol.length > 0) {
+                    let srcCanvas = canvasEleCol[0];
+                    let desCanvas = document.createElement("canvas");
+                    desCanvas.width = srcCanvas.width;
+                    desCanvas.height = srcCanvas.height;
+                    let desCtx = desCanvas.getContext('2d');
+                    desCtx.fillStyle = "#FFFFFF";
+                    desCtx.fillRect(0, 0, srcCanvas.width, srcCanvas.height);
+                    desCtx.drawImage(srcCanvas, 0, 0);  
+                    let dataURL = desCanvas.toDataURL('image/jpeg', 0.9);
+                    let anchor = document.createElement('a');
+                    anchor.href = dataURL.replace(/^data:image\/[^;]/, 'data:application/octet-stream');
+                    anchor.target = '_blank';
+                    anchor.download = 'graph.jpg';
+                    anchor.click();
+                } else {
+                    alert("No canvas object found!");
+                }
+            };
+        
+            function setSizeGraph(){
+                if (window.network){
+                    let newSize = document.getElementById('newsize').value.trim();
+                    if (newSize.length > 0){
+                        let matches = /^(\d+px)( +\d+px)?$/g.exec(newSize)
+                        if (matches == null){
+                            alert("Format invalid!");
+                        } else if (matches[2] == null){
+                            window.network.setSize(matches[1], matches[1]);
+                            window.network.redraw();
+                        } else {
+                            window.network.setSize(matches[1], matches[2]);
+                            window.network.redraw();
+                        }
+                    } else {
+                        alert("No size indicated!");
+                    }
+                } else {
+                    alert("No graph available!");
+                }
+            }
+        
+            function selectColor(colorNum, colors) {
+                if (colors < 1) colors = 1; // defaults to one color - avoid divide by zero
+                return "hsl(" + (colorNum * (360 / colors) % 360) + ",100%,50%)";
+            }
+        
+            function parseGraphData(papaCsvData) {
+                let nodes = {};
+                let edges = [];
+                let compactIds = {};
+                let idCounter = 0;
+                let linkTypeDict = {};
+                let numLinkType = 0;
+                let edgeIdCounter = 0;
+                let htmlColoredTextLegends = "";
+                
+                // Count how many LinkTypes.
+                papaCsvData.data.forEach(function(row){
+                    if (!(row["LinkType"] in linkTypeDict)){
+                        linkTypeDict[row["LinkType"]] = 0;
+                    }
+                });
+                
+                numLinkType = Object.keys(linkTypeDict).length;
+                Object.keys(linkTypeDict).forEach((item, index) => {
+                    linkTypeDict[item] = selectColor(index, numLinkType)
+                    htmlColoredTextLegends += '<span class="legendcolortext" style="color:' + linkTypeDict[item] + '">' + item + '</span>';
+                });
+                
+                document.getElementById('mylegend').innerHTML = htmlColoredTextLegends;
+                
+                papaCsvData.data.forEach(function(row){
+                    // For source node.
+                    if (!(row["SourceId"] in compactIds)){
+                        compactIds[row["SourceId"]] = idCounter;
+                        idCounter++;
+                    }
+                    var sourceId = compactIds[row["SourceId"]];
+                    if (!(sourceId in nodes)){
+                        nodes[sourceId] = {
+                            'id': sourceId, 
+                            'label': row["Source"], 
+                            'group': row["SourceType"], 
+                            'image': "icons/" + row["SourceType"] + ".png"
+                        };
+                    }
+                    // For target node.
+                    if (!(row["TargetId"] in compactIds)){
+                        compactIds[row["TargetId"]] = idCounter;
+                        idCounter++;
+                    }
+                    var targetId = compactIds[row["TargetId"]];
+                    if (!(targetId in nodes)){
+                        nodes[targetId] = {
+                            'id': targetId, 
+                            'label': row["Target"], 
+                            'group': row["TargetType"], 
+                            'image': "icons/" + row["TargetType"] + ".png"
+                        };
+                    }
+                    // For edge (it is assumed that the edges in the file are intentionally sufficient).
+                    // If duplicate edges are a must, then the script generating the file should include duplicate edges.                        
+                    edges.push({
+                        "from": sourceId, 
+                        "to": targetId, 
+                        "color": { "color": linkTypeDict[row["LinkType"]]}});
+                });
+                
+                var data = {"nodes": Object.values(nodes), "edges": edges}
+                return data;
+            }
+        
+            function drawNetworkGraph(data) {
+                let container = document.getElementById('mynetwork');
+                let options = {
+                    interaction: { hover: true },
+                    edges: {
+                        font: {
+                            size: 8,
+                            align: 'middle'
+                        },
+                        color: {
+                            inherit: false,
+                            opacity:1.0
+                        },
+                        arrows: {
+                            to: {
+                                enabled: true
+                            }
+                        }
+                    },
+                    nodes: {
+                        shape: "image",
+                        size: 12,
+                        font: {
+                            size: 8
+                        },
+                        brokenImage: "question.png"
+                    },
+                };
+
+                let graph = {
+                    nodes: new vis.DataSet(data["nodes"]),
+                    edges: new vis.DataSet(data["edges"])
+                };
+                let network = new vis.Network(container, graph, options);
+                network.fit();
+                network.on("afterDrawing", function(ctx) {
+                    network.off("afterDrawing");
+                });
+                window.network = network;
+            };
+        </script>
+    </HEAD>
+    <BODY>
+        <div id="content">
+            <div id="fileloading">
+                <input type="file" id="fileinput" accept=".csv"/>
+                <script type="text/javascript">
+                    function readSingleFile(evt) {
+                        var f = evt.target.files[0]; 
+                        if (f){
+                            Papa.parse(f, {
+                                header: true,
+                                encoding: "UTF-8",
+                                skipEmptyLines: true,
+                                error: function(err, file, inputElem, reason) {
+                                    alert("Error!\n" + err);
+                                },
+                                complete: function(results){
+                                    let neededCols = ["Source", "Target", "SourceType", "TargetType", "SourceId", "TargetId", "LinkType"];
+                                    let allIsThere = neededCols.every(x => results.meta.fields.includes(x));
+                                    if (!allIsThere){
+                                        alert("Not all needed columns are there. Needed columns: " + JSON.stringify(neededCols));
+                                        return;
+                                    }
+                                    let data = parseGraphData(results);
+                                    document.getElementById('msg').textContent = "Nodes: " + data["nodes"].length + "; Edges: " + data["edges"].length;
+                                    drawNetworkGraph(data);
+                                }
+                            });
+                        } else {
+                            alert("Failed to load file.");
+                        }
+                    }
+                    document.getElementById('fileinput').addEventListener('change', readSingleFile, false);
+                </script>
+                <span id="msg"></span>
+                <div id="setsize"><input id="newsize" type="text" placeholder="E.g. '200px', '200px 300px'"/><button onclick="setSizeGraph()">Set Size</button></div>
+                <img id="exportimage" onclick="exportCanvasToImage()" src="save.png" height="20px" width="auto"/>
+            </div>
+            <div id="mynetwork">
+            </div>
+            <div id="mylegend"></div>
+        </div>
+    </BODY>
+</HTML>

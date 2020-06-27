@@ -1,0 +1,64 @@
+html,
+body {
+    height: 100%;
+    margin: 0;
+}
+
+#content {
+    display: flex;
+    flex-flow: column nowrap;
+    height: 100%;
+}
+
+#fileloading {
+    flex: 0 1 auto;
+    margin: 2px 2px 2px 2px;
+}
+
+#mynetwork {
+    flex: 1 1 auto;
+    border: 1px solid black;
+    margin: 2px 2px 2px 2px;
+    overflow: auto;
+}
+
+#exportimage {
+    vertical-align: middle;
+}
+
+#mylegend {
+    flex: 0 1 auto;
+    margin: 2px 2px 2px 2px;
+    overflow-x: auto;
+    white-space: nowrap;
+    min-height: 30px;
+}
+
+.legendcolortext {
+    margin: 2px;
+}
+
+#setsize {
+    width: 250px;
+    border: 1px solid #a9a9a9;
+    display: inline-block;
+}
+
+#setsize input:focus, #setsize input:active {
+    outline: none;
+}
+
+#setsize input {
+    width: 70%;
+    border: none;
+}
+
+#setsize button {
+    float: right;   
+}
+
+#msg {
+    font-weight: bold;
+}
+
+
