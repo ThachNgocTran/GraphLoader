@@ -22,3 +22,7 @@ By default, the drawn graph's size is approximately the viewport of the site, wh
 
 + Vis.js Network v4.21 (https://visjs.org/).
 + Papa CSV Parser v5.0.2 (https://www.papaparse.com/).
+
+## Sample Run
+
+![Sample Run](/SampleRun.png)
