@@ -148,7 +148,7 @@
                         font: {
                             size: 8
                         },
-                        brokenImage: "question.png"
+                        brokenImage: "icons/question.png"
                     },
                 };
 
@@ -176,6 +176,7 @@
                             Papa.parse(f, {
                                 header: true,
                                 encoding: "UTF-8",
+                                delimiter: ',',
                                 skipEmptyLines: true,
                                 error: function(err, file, inputElem, reason) {
                                     alert("Error!\n" + err);
@@ -184,7 +185,7 @@
                                     let neededCols = ["Source", "Target", "SourceType", "TargetType", "SourceId", "TargetId", "LinkType"];
                                     let allIsThere = neededCols.every(x => results.meta.fields.includes(x));
                                     if (!allIsThere){
-                                        alert("Not all needed columns are there. Needed columns: " + JSON.stringify(neededCols));
+                                        alert("Not all needed columns are there. Needed columns: " + JSON.stringify(neededCols) + "; Found: " + JSON.stringify(results.meta.fields));
                                         return;
                                     }
                                     let data = parseGraphData(results);
